@@ -1,0 +1,47 @@
+name: CI
+
+# Trigger this workflow on every push and every pull request targeting main
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-scan-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: pull your repo's code onto the runner
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: build the Docker image, same Dockerfile as local
+      - name: Build image
+        run: docker build -t nervous-system-log-api:${{ github.sha }} .
+
+      # Step 3: install Syft (via its official install script, since
+      # this runner has no Homebrew)
+      - name: Install Syft
+        run: curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
+      # Step 4: generate the SBOM from the freshly built image
+      - name: Generate SBOM
+        run: syft nervous-system-log-api:${{ github.sha }} -o spdx-json=sbom.spdx.json
+
+      # Step 5: install Grype
+      - name: Install Grype
+        run: curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+
+      # Step 6: scan the SBOM, and FAIL the pipeline on any Critical
+      # vulnerability. This is the vulnerability gate.
+      - name: Scan for vulnerabilities (gate on Critical)
+        run: grype sbom:sbom.spdx.json --fail-on critical
+
+      # Step 7: upload the SBOM as a build artifact, so it's downloadable
+      # from this workflow run even after the runner is torn down
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.spdx.json
