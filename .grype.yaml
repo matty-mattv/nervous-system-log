@@ -1,0 +1,35 @@
+# Documented vulnerability exceptions.
+#
+# Each entry here represents a known finding that we've evaluated and
+# decided not to block the pipeline on. This is the practical
+# equivalent of a FedRAMP/NIST 800-53 POA&M (Plan of Action &
+# Milestones) entry - a formal record that a vulnerability is known,
+# assessed, and either accepted as low-risk or scheduled for future
+# remediation, rather than silently ignored or blocking forever.
+#
+# Every entry MUST have a reason - no exceptions without justification.
+
+ignore:
+  - vulnerability: CVE-2026-5450
+    reason: >
+      Debian security team has marked this "won't fix" upstream (no
+      patch available). Affects libc6/libc-bin, a base OS dependency
+      not directly invoked by our application code. Accepted risk
+      pending upstream patch availability.
+
+  - vulnerability: CVE-2026-42496
+    reason: >
+      Debian "won't fix". Affects perl-base, which ships as part of
+      the base Debian image but is never invoked by this application
+      (Python/FastAPI only, no Perl usage anywhere in the codebase).
+
+  - vulnerability: CVE-2026-8376
+    reason: >
+      Debian "won't fix". Same perl-base package, same justification
+      as CVE-2026-42496 - unused dependency inherited from base image.
+
+  - vulnerability: CVE-2026-12087
+    reason: >
+      Affects perl-base, unused by this application. No fix currently
+      available upstream as of this writing; re-evaluate on next
+      scheduled dependency review.
