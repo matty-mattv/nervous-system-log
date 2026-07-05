@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: nslog_user
+      POSTGRES_PASSWORD: nslog_pass
+      POSTGRES_DB: nervous_system_log
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # healthcheck lets the api service wait until Postgres is actually
+    # ready to accept connections, not just "container started"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nslog_user -d nervous_system_log"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://nslog_user:nslog_pass@db:5432/nervous_system_log
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
